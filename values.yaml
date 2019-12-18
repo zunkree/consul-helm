@@ -111,6 +111,29 @@ global:
     # clients and servers and only accept HTTPS connections.
     httpsOnly: true
 
+  # consulNamespaces are an Enterprise only feature available in Consul v1.7+.
+  # A valid Consul Enterprise license is required to make use of this feature.
+  # Requires consul-k8s v0.x+
+  consulNamespaces:
+    enabled: false
+
+    # consulNamespaceName is the name of the Consul namespace to register all
+    # k8s services into. If the Consul namespace does not already exist,
+    # it will be created. This will be ignored if `mirrorK8s` is true.
+    consulNamespaceName: "default"
+
+    # mirrorK8s causes k8s services to be registered into a Consul namespace
+    # equivalent to their k8s namespace. If the Consul namespace does not
+    # already exist, it will be created. Turning this on overrides the
+    # `consulNamespaceName` setting.
+    mirrorK8s: false
+
+    # If `mirrorK8s` is set to true, `mirroringPrefix` allows each Consul namespace
+    # to be given a prefix. For example, if `mirroringPrefix` is set to "k8s-", a
+    # service in the k8s `staging` namespace will be registered into the
+    # `k8s-staging` Consul namespace.
+    mirroringPrefix: ""
+
 # Server, when enabled, configures a server cluster to run. This should
 # be disabled if you plan on connecting to a Consul cluster external to
 # the Kube cluster.
@@ -499,6 +522,24 @@ connectInject:
   #     namespace-label: label-value
   namespaceSelector: null
 
+  # allowNamespacesList is a list of k8s namespaces to allow Connect sidecar
+  # injection in. If a k8s namespace is not included or is listed in `denyNamespacesList`,
+  # pods in that k8s namespace will not be injected even if they are explicitly
+  # annotated. Use "*" to automatically allow all k8s namespaces.
+  # For example, ["namespace1", "namespace2"] will only allow pods in the k8s
+  # namespaces `namespace1` and `namespace2` to have Connect sidecars injected
+  # and registered with Consul. All other k8s namespaces will be ignored.
+  # Note: `denyNamespacesList` takes precedence over values defined here and
+  # `namespaceSelector` takes precedence over both since it is applied first.
+  # Requires consul-k8s v0.x+
+  allowNamespacesList: ["*"]
+
+  # denyNamespacesList is a list of k8s namespaces that should not allow Connect
+  # sidecar injection. This list takes precedence over `allowNamespacesList`.
+  # Note: `namespaceSelector` takes precedence over this since it is applied first
+  # Requires consul-k8s v0.x+
+  denyNamespacesList: []
+
   # The certs section configures how the webhook TLS certs are configured.
   # These are the TLS certs for the Kube apiserver communicating to the
   # webhook. By default, the injector will generate and manage its own certs,
@@ -546,6 +587,14 @@ connectInject:
   # If not using global.bootstrapACLs and instead manually setting up an auth
   # method for Connect inject, set this to the name of your auth method.
   overrideAuthMethodName: ""
+
+  # aclInjectToken refers to a Kubernetes secret that you have created that contains
+  # an ACL token for your Consul cluster which allows the Connect injector the correct
+  # permissions. This is only needed if Consul namespaces and ACLs are enabled on the
+  # Consul cluster and you are not using `global.bootstrapACLs`.
+  aclInjectToken:
+    secretName: null
+    secretKey: null
 
   # Requires Consul >= v1.5 and consul-k8s >= v0.8.1.
   centralConfig:
