@@ -118,6 +118,7 @@ spec:
                 -hcl='ca_file = "/consul/tls/ca/tls.crt"' \
                 -hcl='cert_file = "/consul/tls/server/tls.crt"' \
                 -hcl='key_file = "/consul/tls/server/tls.key"' \
+                -hcl='auto_encrypt = {allow_tls = true}' \
                 {{- if .Values.global.tls.verify }}
                 -hcl='verify_incoming_rpc = true' \
                 -hcl='verify_outgoing = true' \

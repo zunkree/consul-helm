@@ -71,9 +71,6 @@ spec:
         - name: tls-ca-cert
           secret:
             secretName: {{ template "consul.fullname" . }}-ca-cert
-        - name: tls-ca-key
-          secret:
-            secretName: {{ template "consul.fullname" . }}-ca-key
         - name: tls-client-cert
           emptyDir:
             # We're using tmpfs here so that
@@ -144,12 +141,9 @@ spec:
                 -hcl='leave_on_terminate = true' \
                 {{- if .Values.global.tls.enabled }}
                 -hcl='ca_file = "/consul/tls/ca/tls.crt"' \
-                -hcl='cert_file = "/consul/tls/client/tls.crt"' \
-                -hcl='key_file = "/consul/tls/client/tls.key"' \
+                -hcl='auto_encrypt = {tls = true}' \
                 {{- if .Values.global.tls.verify }}
-                -hcl='verify_incoming_rpc = true' \
                 -hcl='verify_outgoing = true' \
-                -hcl='verify_server_hostname = true' \
                 {{- end }}
                 -hcl='ports { https = 8501 }' \
                 {{- if .Values.global.tls.httpsOnly }}
@@ -253,7 +247,7 @@ spec:
                 - |
                   {{- if .Values.global.tls.enabled }}
                   curl \
-                    --cacert /consul/tls/ca/tls.crt \
+                    -k /consul/tls/ca/tls.crt \
                     https://127.0.0.1:8501/v1/status/leader \
                   {{- else }}
                   curl http://127.0.0.1:8500/v1/status/leader \
@@ -279,37 +273,6 @@ spec:
         volumeMounts:
           - name: aclconfig
             mountPath: /consul/aclconfig
-      {{- end }}
-      {{- if .Values.global.tls.enabled }}
-      - name: client-tls-init
-        image: "{{ default .Values.global.image .Values.client.image }}"
-        env:
-        - name: HOST_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.hostIP
-        command:
-          - "/bin/sh"
-          - "-ec"
-          - |
-            cd /consul/tls/client
-            consul tls cert create -client \
-              -additional-ipaddress=${HOST_IP} \
-              -dc={{ .Values.global.datacenter }} \
-              -domain={{ .Values.global.domain }} \
-              -ca=/consul/tls/ca/cert/tls.crt \
-              -key=/consul/tls/ca/key/tls.key
-            mv {{ .Values.global.datacenter }}-client-{{ .Values.global.domain }}-0.pem tls.crt
-            mv {{ .Values.global.datacenter }}-client-{{ .Values.global.domain }}-0-key.pem tls.key
-        volumeMounts:
-          - name: tls-client-cert
-            mountPath: /consul/tls/client
-          - name: tls-ca-cert
-            mountPath: /consul/tls/ca/cert
-            readOnly: true
-          - name: tls-ca-key
-            mountPath: /consul/tls/ca/key
-            readOnly: true
       {{- end }}
       {{- end }}
       {{- if .Values.client.nodeSelector }}
